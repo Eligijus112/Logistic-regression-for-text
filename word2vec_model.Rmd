@@ -1,0 +1,116 @@
+---
+header-includes:
+  - \usepackage[L7x]{fontenc}
+  - \usepackage{bbm}
+  - \bibliographystyle{plainnat}
+output:
+ pdf_document: 
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: no
+    latex_engine: pdflatex
+margin-left: 6.5in
+margin-top: 9in
+fontsize: 12pt    
+papersize: A4
+fontfamily: palatino
+---
+\vskip 20pt
+\centerline{\bf \large VILNIUS UNIVERSITY}
+\bigskip
+\centerline{\large \textbf{FACULTY OF MATHEMATICS AND INFORMATICS}}
+\vskip 120pt
+\centerline{\bf \Large \textbf{Article}}
+\vskip 50pt
+\begin{center}
+{\bf \LARGE Ridge and Lasso logistic regression}
+
+\vspace{4mm}
+
+\end{center}
+\vskip 120pt
+\centerline{\Large Eligijus Bujokas}
+\vskip 120pt
+\centerline{\large \textbf{VILNIUS (2018.12.21)}}
+
+\newpage
+
+\begin{center}{\large\textbf{Logistic Ridge and Lasso regression}}\end{center}
+
+\vspace{2\baselineskip}
+\begin{center}\textbf{Abstract}\end{center}
+
+The aim of this paper is to implement Ridge and Lasso logistic regression to a textual dataset. 
+
+The calculations and visuals are made using the statistical software $\textbf{R}$.
+
+\vspace{\baselineskip}
+\noindent\textbf{Key words :}
+Logistic regression, Ridge, Lasso
+
+\vspace{\baselineskip}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+```{r setup, include = FALSE}
+library(data.table)
+library(dplyr)
+library(knitr)
+library(tm)
+library(textmineR)
+library(text2vec)
+```
+
+# Introduction
+
+In the modern world there are many clasification tasks that revolve around clasifying textual data. There are algorythms that based on a user inputed string can talk with a person, after reading lyrics of a song it can label the genre of the song and so on. Typical features (independant variables, regresors) are unique words thus even a small text can have thousands of collumns in the design matrix. 
+
+A big design matrix leads to big computational times and often leads to multicolinearity. The reduction of the number of features in a dataset or reweighting the importance of features often leads to a speed up in the computational time and better results. Ridge and Lasso regression are often the tools of choice when dealing with the mentioned problems.
+
+\newpage
+
+# Logistic regression for textual data
+
+## Simulated case
+
+Let us assume that our $\mathbb{Y}$ variable is binary. Each class of $\mathbb{Y}$ could indicate whether a string is 'positive' or 'negative' in a semantic sense, 'sincere' or 'not sincere' and so on. Each column in the $\mathbb{X}$ matrix are also binary. Each collumn represent a unique word and each row value represent whether a word was observed in a given string or not.
+
+For example, let us say we have a 'positive' review -'This was delicious'- and a 'negative' one -'The food was awfull'. Then raw document will have two rows:
+
+```{r, echo = FALSE, results = 'asis'}
+sentiment <- c(1, 0)
+review <- c('This was delicious', 'This was awfull')
+d <- data.table(sentiment, review)
+kable(d)
+```
+
+The matrix that is used for computations is often called the document term matrix (dtm for short). The dtm of our raw document would look like this: 
+
+```{r, echo = FALSE, results = 'asis'}
+prep_fun = tolower
+tok_fun = word_tokenizer
+
+it_train = itoken(d$review, 
+             preprocessor = prep_fun, 
+             tokenizer = tok_fun, 
+             ids = 1:nrow(d), 
+             progressbar = FALSE)
+vocab = create_vocabulary(it_train)
+vectorizer = vocab_vectorizer(vocab)
+dtm = create_dtm(it_train, vectorizer) %>% 
+  as.matrix() %>% 
+  data.table()
+kable(dtm)
+```
+
+As we can see, the matrix indicates that the first review had words $\textit{delicious}$, $\textit{was}$ and $\textit{this}$ while the second review had the words $\textit{awfull}$, $\textit{was}$ and $\textit{this}$. 
+
+We can define a general linear model for this case:
+
+$$ log \dfrac{P(Y = 1)}{P(Y = 0)} = \beta_{0} + \beta_{1} \mathbbm{1}_{delicious} + \beta_{2} \mathbbm{1}_{was} + \beta_{3} \mathbbm{1}_{this} + \beta_{4} \mathbbm{1}_{awfull}$$
+
+
