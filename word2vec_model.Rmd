@@ -161,9 +161,7 @@ $$\theta := \begin{bmatrix}
     \beta_{k}
 \end{bmatrix}$$
 
-The estimation of these coeficients follows the steps from `r Cite(bib, 'ML', .opts = list(cite.style = "numeric"), after=" , pp. 3-5")`. 
-
-From (1), the probability of 'success' for each observation i can be rewritten as:
+From (1), the probability of 'success' for each observation i can be rewritten as `r Cite(bib, 'ML', .opts = list(cite.style = "numeric"), after=" , pp. 3-5")`:
 
 $$ \pi_{i} := P(\mathbb{Y}_{i} = 1) = \dfrac{e^{\theta^{T} \mathbb{X}_{i}}}{1 + e^{\theta^{T} \mathbb{X}_{i}}} = \dfrac{1}{1 + e^{-\theta^{T} \mathbb{X}_{i}}} $$
 
@@ -173,13 +171,54 @@ In every binary case, the $\mathbb{Y}$ can be encoded as a vector consisting of 
 
 $$ l(\theta) = \prod_{i = 1}^{n} \pi_{i}^{y_{i}}(1 - \pi_{i})^{1 - y_{i}} \, (2)$$
 
-is the biggest. 
+is the biggest . 
 
-Logarythm is a monotone function thus the maximum of $l(\theta)$ is the same as $log(l(\theta))$. 
+Logarythm is a monotone function thus the maximum of $l(\theta)$ is the same as $log(l(\theta))$ `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp. 636 - 637")`. 
 
 $$L(\theta) := log(l(\theta)) = \sum_{i=1}^{n}\left[y_{i} log(\pi_{i}) + (1 - y_{i})log(1 - \pi_{i})\right] = \sum_{i=1}^{n}\left[y_{i}log(\dfrac{\pi_{i}}{1 -\pi_{i}}) + log(1 - \pi_{i})\right] $$
 
-$$L(\theta) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] $$
+$$L(\theta) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] \, (3)$$
+
+The $\widehat{\theta}$ that maximizes the (3) equation will give a weight to every unique word in our text. This, in practise, is ussualy not ideal, because even a small text document can have thousands of unique words. 
+
+\newpage
+
+## Ridge logistic regression 
+
+Ridgre logistic regression introduces an additional term to the (3) equation - the L2 penalty.
+
+$$ L^{R}(\theta, \lambda) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \lambda \sum_{j = 1}^{k} \beta_{j}^{2} $$
+
+Often in practise, the $\lambda$ parameter is fixed to a certain value. As the parameter $\lambda$ increases, the ridge coefficient estimates will tend to approach zero. However, the penalty introduced in the log-likelihood function will shrink all of the coefficients towards zero, but it will not set any of them exactly to zero. Hence, ridge regression has the disadvantage over model selection, of including all the predictors in the final model. 
+
+On the other hand, Ridge regression estimates gives us more uniformally distributed weights to all words. Depending on the problem, one may view this as an advantage. 
+
+## Lasso logistic regression 
+
+Lasso logistic regression is very similar to that of Ridge, but the penalty term is L1:
+
+$$ L^{L}(\theta, \lambda) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \lambda \sum_{j = 1}^{k} |\beta_{j}| $$
+
+The L1 penalty used in the lasso is used for both variable selection and shrinkage, since it has the effect, when the $\lambda$ is sufficiently large, of forcing some of the coefficient estimates to be exactly equal to zero `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp.637")`.
+In Lasso regression, the final model may involve only a subset of the predictors, which in turn improves model interpretability. 
+
+Depending on the research subject and the problem, having less predictors is beneficial. 
+
+## Elastic net regression
+
+One is not confined to just using either Ridge or Lasso regression. The elastic net procedure tries to implement both of these methods: 
+
+$$ L^{EN}(\theta, \lambda) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] -( \lambda \sum_{j = 1}^{k} |\beta_{j}| + (1 - \lambda)\sum_{j = 1}^{k} \beta_{j}^{2})$$
+
+$\lambda \in (0, 1)$.  
+
+This approach is particularly useful when the number of predictors is much larger than the number of
+observations `r Cite(bib, 'EN', .opts = list(cite.style = "numeric"))`. 
+
+\newpage
+
+# Quora question  example
+
 
 \newpage
 
