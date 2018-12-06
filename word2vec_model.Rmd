@@ -63,6 +63,8 @@ library(knitr)
 library(tm)
 library(textmineR)
 library(text2vec)
+library(RefManageR)
+bib <- ReadBib("bibliography.bib", check = FALSE)
 ```
 
 # Introduction
@@ -75,7 +77,7 @@ A big design matrix leads to big computational times and often leads to multicol
 
 # Logistic regression for textual data
 
-## Simulated case
+## Introductory case
 
 Let us assume that our $\mathbb{Y}$ variable is binary. Each class of $\mathbb{Y}$ could indicate whether a string is 'positive' or 'negative' in a semantic sense, 'sincere' or 'not sincere' and so on. Each column in the $\mathbb{X}$ matrix are also binary. Each collumn represent a unique word and each row value represent whether a word was observed in a given string or not.
 
@@ -113,4 +115,76 @@ We can define a general linear model for this case:
 
 $$ log \dfrac{P(Y = 1)}{P(Y = 0)} = \beta_{0} + \beta_{1} \mathbbm{1}_{delicious} + \beta_{2} \mathbbm{1}_{was} + \beta_{3} \mathbbm{1}_{this} + \beta_{4} \mathbbm{1}_{awfull}$$
 
+According to the data, the coefficient $\beta_{1}$ should be positive and $\beta_{4}$ should be negative implying positive and negative sentiments respectivelly. The words $\textit{was}$ and $\textit{this}$ do not help in distinguishing between the positive and the negative sentiments thus the coefficients near these features need to be 0 or very small. 
 
+\newpage
+
+## General case for binary dependant variable
+
+Let us assume that our data is the set: 
+
+$$D_{\mathbb{Y}, \mathbb{X}} = \{ \mathbb{Y}_{i} \in \{0, 1\}, \mathbb{X} = [1,X_{i1}, X_{i2}, ..., X_{ik}] , \forall i \in \{1, ..., n\}\}$$
+
+In most practical cases, the intercept is added to the design matrix.
+
+In matrix form: 
+
+$$\mathbb{Y} = \begin{bmatrix}
+    y_{1}\\
+    y_{2}\\
+    \vdots \\
+    y_{n}
+\end{bmatrix} 
+\mathbb{X} = \begin{bmatrix}
+    1 & x_{11} & x_{12} & ... & x_{1k}\\
+    1 & x_{21} & x_{22} & ... & x_{2k}\\
+    ... & ... & ... & ...\\
+    1 & x_{n1} & x_{n2} & ... & x_{nk}
+\end{bmatrix}$$
+
+In practise, all $x_{ij}$ are either 0 or 1, indicating existance in certain row of the document term matrix, or the count of occurance in row in the document term matrix. The number of columns in the $\mathbb{X}$ matrix is equal to the number of unique words in our document.
+
+The general model is then:
+
+$$ log \dfrac{P(Y = 1)}{P(Y = 0)} = \sum_{i = 0}^{k}\beta_{i} X_{i} \, (1)$$
+
+\newpage
+
+## Maximum likelihood for estimating the coefficients
+
+Let us define: 
+
+$$\theta := \begin{bmatrix}
+    \beta_{0}\\
+    \beta_{1}\\
+    \vdots \\
+    \beta_{k}
+\end{bmatrix}$$
+
+The estimation of these coeficients follows the steps from `r Cite(bib, 'ML', .opts = list(cite.style = "numeric"), after=" , pp. 3-5")`. 
+
+From (1), the probability of 'success' for each observation i can be rewritten as:
+
+$$ \pi_{i} := P(\mathbb{Y}_{i} = 1) = \dfrac{e^{\theta^{T} \mathbb{X}_{i}}}{1 + e^{\theta^{T} \mathbb{X}_{i}}} = \dfrac{1}{1 + e^{-\theta^{T} \mathbb{X}_{i}}} $$
+
+$$ P(\mathbb{Y}_{i} = 0) = 1 - \pi_{i} $$
+
+In every binary case, the $\mathbb{Y}$ can be encoded as a vector consisting of 0 and 1. Thus, we want $\theta$ such that the product:
+
+$$ l(\theta) = \prod_{i = 1}^{n} \pi_{i}^{y_{i}}(1 - \pi_{i})^{1 - y_{i}} \, (2)$$
+
+is the biggest. 
+
+Logarythm is a monotone function thus the maximum of $l(\theta)$ is the same as $log(l(\theta))$. 
+
+$$L(\theta) := log(l(\theta)) = \sum_{i=1}^{n}\left[y_{i} log(\pi_{i}) + (1 - y_{i})log(1 - \pi_{i})\right] = \sum_{i=1}^{n}\left[y_{i}log(\dfrac{\pi_{i}}{1 -\pi_{i}}) + log(1 - \pi_{i})\right] $$
+
+$$L(\theta) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] $$
+
+\newpage
+
+# References
+
+```{r references, results="asis", echo=F, warning=F}
+PrintBibliography(bib)
+```
