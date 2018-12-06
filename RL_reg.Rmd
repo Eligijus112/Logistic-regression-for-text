@@ -40,13 +40,13 @@ fontfamily: palatino
 \vspace{2\baselineskip}
 \begin{center}\textbf{Abstract}\end{center}
 
-The aim of this paper is to implement Ridge and Lasso logistic regression to a textual dataset. 
+The aim of this paper is to give a brief introduction to Ridge, Lasso and elastic net binary logistic regression. The feature matrix is constructed from text. 
 
 The calculations and visuals are made using the statistical software $\textbf{R}$.
 
 \vspace{\baselineskip}
 \noindent\textbf{Key words :}
-Logistic regression, Ridge, Lasso
+Logistic regression, Ridge, Lasso, Elastic Net
 
 \vspace{\baselineskip}
 
