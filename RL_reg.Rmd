@@ -15,6 +15,18 @@ fontsize: 12pt
 papersize: A4
 fontfamily: palatino
 ---
+
+```{r setup, include = FALSE}
+library(data.table)
+library(dplyr)
+library(knitr)
+library(tm)
+library(textmineR)
+library(text2vec)
+library(RefManageR)
+bib <- ReadBib("bibliography.bib", check = FALSE)
+```
+
 \vskip 20pt
 \centerline{\bf \large VILNIUS UNIVERSITY}
 \bigskip
@@ -40,9 +52,9 @@ fontfamily: palatino
 \vspace{2\baselineskip}
 \begin{center}\textbf{Abstract}\end{center}
 
-The aim of this paper is to give a brief introduction to Ridge, Lasso and elastic net binary logistic regression. The feature matrix is constructed from text. 
+The aim of this paper is to apply Ridge, Lasso and elastic net binary logistic regression to a data set regarding a binary response variable and text as a feature matrix. Additionally, some clasic text preprocesing techniques will be introduced.  
 
-The calculations and visuals are made using the statistical software $\textbf{R}$.
+The calculations and visuals are made using the statistical software $\textbf{R}$. The main framework for text preprocesing is the $\textbf{text2vec}$ `r Cite(bib, 'text2vec')`. 
 
 \vspace{\baselineskip}
 \noindent\textbf{Key words :}
@@ -56,16 +68,6 @@ Logistic regression, Ridge, Lasso, Elastic Net
 
 \newpage
 
-```{r setup, include = FALSE}
-library(data.table)
-library(dplyr)
-library(knitr)
-library(tm)
-library(textmineR)
-library(text2vec)
-library(RefManageR)
-bib <- ReadBib("bibliography.bib", check = FALSE)
-```
 
 # Introduction
 
@@ -113,7 +115,7 @@ As we can see, the matrix indicates that the first review had words $\textit{del
 
 We can define a general linear model for this case:
 
-$$ log \dfrac{P(Y = 1)}{P(Y = 0)} = \beta_{0} + \beta_{1} \mathbbm{1}_{delicious} + \beta_{2} \mathbbm{1}_{was} + \beta_{3} \mathbbm{1}_{this} + \beta_{4} \mathbbm{1}_{awfull}$$
+$$log \dfrac{P(Y = 1)}{P(Y = 0)} = \beta_{0} + \beta_{1} \mathbbm{1}_{delicious} + \beta_{2} \mathbbm{1}_{was} + \beta_{3} \mathbbm{1}_{this} + \beta_{4} \mathbbm{1}_{awfull}$$
 
 According to the data, the coefficient $\beta_{1}$ should be positive and $\beta_{4}$ should be negative implying positive and negative sentiments respectivelly. The words $\textit{was}$ and $\textit{this}$ do not help in distinguishing between the positive and the negative sentiments thus the coefficients near these features need to be 0 or very small. 
 
@@ -215,10 +217,92 @@ $\lambda \in (0, 1)$.
 This approach is particularly useful when the number of predictors is much larger than the number of
 observations `r Cite(bib, 'EN', .opts = list(cite.style = "numeric"))`. 
 
+\newpage 
+
+# Text preprocesing definitions techniques
+
+## Definitions and notations
+
+The whole text corpus (all the data) is denoted $\mathbb{D}$. Typically, the corpus is the vector containing the text data. In the introduction chapter, the text corpus would be ['This was delicious', 'This was awfull']. 
+
+Each entry in the corpus is denoted as $d$. In our example case we have two documents: 'This was delicious' and 'This was awfull'.
+
+Each term (token) in a given corpus is denoted as t. 
+
+## Document corpus
+
+A document or text corpus are large and structured set of texts. Usually in the case natural language procesing (NLP for short) each row of the $\mathbb{X}$ is treated as a separate document (in the introduction chapter, the number of documents would be 2). Each document are made of several tokens. 
+
+The whole data set in text related tasks is ussually defined as corpus and can be used instead of the terms 'whole data set' or 'all data'. 
+
+## Tokenization 
+
+Text tokenization is the process of segmenting running text into words and sentences.
+
+Electronic text is a linear sequence of symbols (characters or words or phrases). Naturally, before any real text processing is to be done, text needs to be segmented into linguistic units such as words, punctuation, numbers, alpha-numerics, etc. This process is called tokenization `r Cite(bib, 'token', .opts = list(cite.style = "numeric"))`.
+
+In English, words are often separated from each other by blanks (white space), but not all white space is equal. Both 'Los Angeles' and 'rock 'n' roll' are individual thoughts despite the fact that they contain multiple words and spaces. We may also need to separate single words like 'I'm' into separate words 'I' and 'am'.
+
+Tokenization is a kind of pre-processing in a sense; an identification of basic units to be processed. It is conventional to concentrate on pure analysis or generation while taking basic units for granted. Yet without these basic units clearly segregated it is impossible to carry out any analysis or generation.
+
+For example, the string 'I'm a from the city of Vilnius' can be tokenized into several tokens: 'i', 'am', 'from', 'the', 'city', 'of', 'vilnius'. 
+
+## N - grams
+
+An n-gram is a contiguous sequence of n items from a given sequence of text. Given a sentence, we can construct a list of n-grams from the sentence by finding pairs of words that occur next to each other. For example, given the sentence 'my name is Eligijus' you can construct bigrams (n-grams of length 2) by finding consecutive pairs of words: 'my name', 'name is' and 'is Eligijus'. Each of these bigrams would be considered a token and would be considered as a separate feature in the $\mathbb{X}$ matrix.
+
+## Tf-idf tranformation
+
+Tf-idf, short for term frequency-inverse document frequency, is a numerical statistic that is intended to reflect how important a word is to a document in a collection or corpus. The tf-idf is the product of two statistics, term frequency and inverse document frequency. 
+
+### Term frequency
+
+$tf(\centerdot)$ is a function of two arguments - the term t and document d. If we denote the term frequency in a document as $f_{t, d}$ then 
+
+$$ tf(t, d) = f_{t, d} $$
+
+In simpler terms, the function tf() takes every unique token in our corpus and counts how many times it appeared in a document.
+
+### Inverse document frequency
+
+The inverse document frequency ($idf(\centerdot)$) is a measure of how much information the word provides, in other words, if it is common or rare across all documents.
+
+$$ idf(t, D) = log\left(\dfrac{N}{1 + |\{d \in D: t \in d  \}|} \right)$$  
+
+N - total number of documents in our corpus. The corpus in the introduction chapter has two documents. 
+
+$|\{d \in D: t \in d  \}|$  number of documents where the term t appears. We add 1 because if no document has a certain term, then we would be dividing by zero. 
+
+### Tf - idf calculation 
+
+The tf-idf transformation for each term is a product of term frequency and inverse document frequency. 
+
+$$tfidf(t, d, D) = tf(t, d) \centerdot idf(t, D)$$
+
+Recall our example case. Lets us calculate the tfidf statistic for the word 'awfull'. 
+
+$tf('awfull', d_{1}) = 0$
+
+$tf('awfull', d_{2}) = 1$
+
+$idf('awfull', D) = log(\frac{2}{2}) = 0$ 
+
+$tfidf('awfull', d_{1}, D) = 0$
+
+$tfidf('awfull', d_{2}, D) = 0$
+
+The transformation would yield that in both documents the term 'awfull' is equal to 0, altough this term is very important in distinguishing between the sentements. This is because we only used a corpus with two documents. In practise, the td - idf transformation is used when a corpus has a lot of documents.
+
 \newpage
 
 # Quora question  example
 
+We will use the various types of logistic regression and text preprocesing techniques to a dataset from the website Quora. On that website users can ask any question and other users can aswer those question for recognision or special points. While most of the questions are sincere, some of the questions are dubious and it is not easy to keep track of all the questions for a human. Thus, machine learning algorythms can be used to determine wheter an inputed question is genuine or not. 
+
+```{r}
+
+
+```
 
 \newpage
 
