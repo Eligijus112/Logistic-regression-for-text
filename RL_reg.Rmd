@@ -24,7 +24,14 @@ library(tm)
 library(textmineR)
 library(text2vec)
 library(RefManageR)
+library(stopwords)
+library(stringr)
+library(glmnet)
+library(pluralize)
+library(qdap)
 bib <- ReadBib("bibliography.bib", check = FALSE)
+knitr::opts_chunk$set(comment = NA)
+knitr::opts_chunk$set(tidy = TRUE)
 ```
 
 \vskip 20pt
@@ -189,9 +196,9 @@ The $\widehat{\theta}$ that maximizes the (3) equation will give a weight to eve
 
 Ridgre logistic regression introduces an additional term to the (3) equation - the L2 penalty.
 
-$$ L^{R}(\theta, \lambda) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \lambda \sum_{j = 1}^{k} \beta_{j}^{2} $$
+$$ L^{R}(\theta, \alpha) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \alpha \sum_{j = 1}^{k} \beta_{j}^{2} $$
 
-Often in practise, the $\lambda$ parameter is fixed to a certain value. As the parameter $\lambda$ increases, the ridge coefficient estimates will tend to approach zero. However, the penalty introduced in the log-likelihood function will shrink all of the coefficients towards zero, but it will not set any of them exactly to zero. Hence, ridge regression has the disadvantage over model selection, of including all the predictors in the final model. 
+Often in practise, the $\alpha$ parameter is fixed to a certain value. As the parameter $\alpha$ increases, the ridge coefficient estimates will tend to approach zero. However, the penalty introduced in the log-likelihood function will shrink all of the coefficients towards zero, but it will not set any of them exactly to zero. Hence, ridge regression has the disadvantage over model selection, of including all the predictors in the final model. 
 
 On the other hand, Ridge regression estimates gives us more uniformally distributed weights to all words. Depending on the problem, one may view this as an advantage. 
 
@@ -199,9 +206,9 @@ On the other hand, Ridge regression estimates gives us more uniformally distribu
 
 Lasso logistic regression is very similar to that of Ridge, but the penalty term is L1:
 
-$$ L^{L}(\theta, \lambda) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \lambda \sum_{j = 1}^{k} |\beta_{j}| $$
+$$ L^{L}(\theta, \alpha) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \alpha \sum_{j = 1}^{k} |\beta_{j}| $$
 
-The L1 penalty used in the lasso is used for both variable selection and shrinkage, since it has the effect, when the $\lambda$ is sufficiently large, of forcing some of the coefficient estimates to be exactly equal to zero `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp.637")`.
+The L1 penalty used in the lasso is used for both variable selection and shrinkage, since it has the effect, when the $\alpha$ is sufficiently large, of forcing some of the coefficient estimates to be exactly equal to zero `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp.637")`.
 In Lasso regression, the final model may involve only a subset of the predictors, which in turn improves model interpretability. 
 
 Depending on the research subject and the problem, having less predictors is beneficial. 
@@ -210,9 +217,9 @@ Depending on the research subject and the problem, having less predictors is ben
 
 One is not confined to just using either Ridge or Lasso regression. The elastic net procedure tries to implement both of these methods: 
 
-$$ L^{EN}(\theta, \lambda) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] -( \lambda \sum_{j = 1}^{k} |\beta_{j}| + (1 - \lambda)\sum_{j = 1}^{k} \beta_{j}^{2})$$
+$$ L^{EN}(\theta, \alpha) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] -( \alpha \sum_{j = 1}^{k} |\beta_{j}| + (1 - \alpha)\sum_{j = 1}^{k} \beta_{j}^{2})$$
 
-$\lambda \in (0, 1)$.  
+$\alpha \in (0, 1)$.  
 
 This approach is particularly useful when the number of predictors is much larger than the number of
 observations `r Cite(bib, 'EN', .opts = list(cite.style = "numeric"))`. 
@@ -295,13 +302,213 @@ The transformation would yield that in both documents the term 'awfull' is equal
 
 \newpage
 
-# Quora question  example
+# Quora sincere question  example
 
 We will use the various types of logistic regression and text preprocesing techniques to a dataset from the website Quora. On that website users can ask any question and other users can aswer those question for recognision or special points. While most of the questions are sincere, some of the questions are dubious and it is not easy to keep track of all the questions for a human. Thus, machine learning algorythms can be used to determine wheter an inputed question is genuine or not. 
 
+## Explanatory data analysis
+
+```{r, echo = FALSE, results = 'asis'}
+D <- fread('data/quora.csv', showProgress = FALSE) %>% 
+  select(question_text, target)
+head(D[target == 0]) %>% kable()
+```
+
+```{r, echo = FALSE, results = 'asis'}
+head(D[target == 1][1:2]) %>% kable()
+```
+
+```{r}
+dim(D)
+```
+
+There are more than one million documents in the corpus. 
+
+The target collumn obtains two values: 0 if the question is sincere and 1 if the question is not sincere. 
+
+```{r, results = 'asis'}
+D$target %>% 
+  table() %>% 
+  data.table() %>% 
+  kable()
+```
+
+Only about 6 percent of the documents in the corpus have a negative sentiment. We will balance the data by taking the same number of sincere sentiment rows as the insinsere ones.
+
+```{r}
+set.seed(1)
+no_negative <- D[target == 1] %>% 
+  nrow()
+D <- D[,.SD[sample(1:.N, no_negative, replace = FALSE)] , by = .(target)]
+```
+
+## Training and test set split 
+
+We will hold out some data when creating a model in order to see if our model will generalize well. Ideally, the proportion of two clases in the test dataset must be similar to the overall dataset.
+
+We will hold out 30 percent of the original dataset.
+
+```{r}
+prop <- 0.3
+rows_in_test <- round(nrow(D) * prop, 0) 
+
+## Sampling the row indices that will be in the test set
+test_index <- sample(1:nrow(D), rows_in_test, replace = FALSE)
+
+## Test set
+test <- D[test_index]
+
+## Train set 
+train <- D[setdiff(1:nrow(D), test_index)]
+```
+
+\newpage
+
+## Text preprocesing 
+
+We will drop the punctuations, make everything lowercase and remove the stop words (this, the, a, etc).
+
+```{r}
+train <- train[, index := 1:.N]
+prep_fun = function(x){
+  x <- tolower(x)
+  x <- str_replace_all(x, '[[:punct:]]', ' ')
+  x <- removeNumbers(x)
+  x <- removePunctuation(x)
+  return(x)
+}
+
+it_train = itoken(train$question_text, 
+             preprocessor = prep_fun, 
+             tokenizer = word_tokenizer, 
+             ids = train$index, 
+             progressbar = FALSE)
+vocab = create_vocabulary(it_train, stopwords = stopwords(source = 'smart'))
+```
+
+We will prune the vocabulary to include only words that appear in more than 10 documents and do not appear more than in 50 percent of the documents.
+
+```{r}
+pruned_vocab = prune_vocabulary(vocab, doc_count_min = 10, 
+                                 doc_proportion_max = 0.5)
+vectorizer = vocab_vectorizer(pruned_vocab)
+
+dtm_train  = create_dtm(it_train, vectorizer, type = 'dgCMatrix')
+
+tfidf = TfIdf$new()
+dtm_train_tfidf = fit_transform(dtm_train, tfidf)
+```
+
+\newpage
+
+## Number of features
+
+We will create seceral models with diferent alpha values using the glmnet package `r Cite(bib, 'glm', .opts = list(cite.style = "numeric"))`. The first model will represent the Lasso logistic regression while the last one will represent the Ridge logistic regression.
+
+```{r}
+## Defining the range of alpha
+
+alpha_range <- seq(0, 1, length.out = 20) %>% 
+  round(3)
+
+## Constructing a list to store the values and the models in 
+
+result_coef <- vector('list', length(alpha_range))
+names(result_coef) <- alpha_range
+
+result_model <- vector('list', length(alpha_range))
+names(result_model) <- alpha_range
+
+## Iterating over all alphas
+
+for(alpha in alpha_range){
+  model <- glmnet(x = dtm_train, y = train$target,
+                  family = 'binomial',
+                  alpha = alpha,
+                  lambda = 0.01)
+  coef_table <- data.table(feature = rownames(coef(model)), 
+                           coefficient = coef(model)[, 1]) %>% 
+    .[order(-coefficient)] %>% 
+    .[coefficient!=0]
+  result_coef[[as.character(alpha)]] <- coef_table %>% 
+    .[, alpha := alpha]
+  
+   result_model[[as.character(alpha)]] <- model
+}
+
+```
+
+\newpage
+
+```{r, results = 'asis'}
+no_ft <- lapply(result_coef, nrow) %>% 
+  unlist()
+result_frame <- data.table(alpha = alpha_range, no_features = no_ft)
+kable(result_frame)
+```
+
+```{r, fig.width=7,fig.height=5,fig.cap="Barplot of features", fig.pos="H"}
+barplot(result_frame$no_features, result_frame$alpha, xlab = 'alpha',
+        ylab = 'Number of features', 
+        names.arg = result_frame$alpha, col = 'royalblue')
+```
+
+\newpage
+
+## Accuracy calculation
+
 ```{r}
 
+## Preprocesing of text
 
+test <- test[, index := 1:.N]
+
+it_test = itoken(test$question_text,
+             preprocessor = prep_fun,
+             tokenizer = word_tokenizer,
+             ids = test$index,
+             progressbar = FALSE)
+
+vocab = create_vocabulary(it_test, stopwords = stopwords(source = 'smart'))
+vectorizer = vocab_vectorizer(vocab)
+dtm_test  = create_dtm(it_test, vectorizer, type = 'dgCMatrix')
+
+## Tf-idf
+
+tfidf = TfIdf$new()
+dtm_test_tfidf = fit_transform(dtm_test, tfidf)
+
+## Adding features from the train frame
+
+features <- colnames(dtm_train_tfidf)
+missing_ft <- setdiff(features, colnames(dtm_test_tfidf))
+mm <- sparseMatrix(i = nrow(dtm_test_tfidf), j = length(missing_ft))
+colnames(mm) <- missing_ft
+dtm_test_tfidf <- cbind(dtm_test_tfidf, mm)
+dtm_test_tfidf <- dtm_test_tfidf[,features]
+
+## Creating an object to store the results
+
+acc_scores <- vector('list', length(alpha_range))
+names(acc_scores) <- alpha_range
+
+## Iterating
+
+for(alpha in alpha_range){
+  result <- data.table(target = test$target, 
+                       fit = predict(result_model[[as.character(alpha)]],
+                                     dtm_test_tfidf, type = 'class'))
+  
+  acc_scores[[as.character(alpha)]] <- sum(result$target == result$fit.s0)/nrow(result)
+}
+
+## Outputing scores
+
+acc_scores <- acc_scores %>% 
+  unlist() %>% 
+  round(3)
+result_frame <- data.table(alpha = alpha_range, accuracy = acc_scores)
+kable(result_frame)
 ```
 
 \newpage
