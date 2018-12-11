@@ -31,7 +31,6 @@ library(pluralize)
 library(qdap)
 bib <- ReadBib("bibliography.bib", check = FALSE)
 knitr::opts_chunk$set(comment = NA)
-knitr::opts_chunk$set(tidy = TRUE)
 ```
 
 \vskip 20pt
@@ -42,7 +41,7 @@ knitr::opts_chunk$set(tidy = TRUE)
 \centerline{\bf \Large \textbf{Article}}
 \vskip 50pt
 \begin{center}
-{\bf \LARGE Ridge and Lasso logistic regression}
+{\bf \LARGE NLP Ridge and Lasso logistic regression}
 
 \vspace{4mm}
 
@@ -54,18 +53,18 @@ knitr::opts_chunk$set(tidy = TRUE)
 
 \newpage
 
-\begin{center}{\large\textbf{Logistic Ridge and Lasso regression}}\end{center}
+\begin{center}{\large\textbf{Logistic Ridge and Lasso regression in NLP}}\end{center}
 
 \vspace{2\baselineskip}
 \begin{center}\textbf{Abstract}\end{center}
 
-The aim of this paper is to apply Ridge, Lasso and elastic net binary logistic regression to a data set regarding a binary response variable and text as a feature matrix. Additionally, some clasic text preprocesing techniques will be introduced.  
+The aim of this paper is to apply Ridge, Lasso and elastic net binary logistic regression to a natural laguage procesing (NLP) problem. Additionally, some clasic text preprocesing techniques will be introduced.  
 
-The calculations and visuals are made using the statistical software $\textbf{R}$. The main framework for text preprocesing is the $\textbf{text2vec}$ `r Cite(bib, 'text2vec')`. 
+The calculations and visuals are made using the statistical software $\textbf{R}$. The main framework for text preprocesing is the $\textbf{text2vec}$ `r Cite(bib, 'text2vec')` package. The code snipets are included in the article for reproducibility. 
 
 \vspace{\baselineskip}
 \noindent\textbf{Key words :}
-Logistic regression, Ridge, Lasso, Elastic Net
+Logistic regression, Ridge, Lasso, Elastic Net, NLP, machine learning, tfidf
 
 \vspace{\baselineskip}
 
@@ -383,7 +382,8 @@ it_train = itoken(train$question_text,
              tokenizer = word_tokenizer, 
              ids = train$index, 
              progressbar = FALSE)
-vocab = create_vocabulary(it_train, stopwords = stopwords(source = 'smart'))
+vocab = create_vocabulary(it_train, 
+                          stopwords = stopwords(source = 'smart'))
 ```
 
 We will prune the vocabulary to include only words that appear in more than 10 documents and do not appear more than in 50 percent of the documents.
