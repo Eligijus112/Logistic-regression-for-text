@@ -1,27 +1,28 @@
-Logistic regression in NLP using R
+Ridge and Lasso binary logistic regression in NLP using R
 ========================================================
 author: Eligijus Bujokas
 date: 2018.12.18
 autosize: true
+Vilnius University
 
 
 
 Content
 ========================================================
 
-- What is natural language procesing
+- What is natural language processing
 - NLP definitions
 - Logistic regression in NLP tasks
 - Quora example
 
-Natural language procesing
+Natural language processing
 ========================================================
 
-Natural language processing (NLP) is a subfield of computer science concerned with the interactions between computers and human (natural) languages, in particular how to program computers to process and analyze large amounts of natural language data.
+Natural language processing (NLP) is a sub field of computer science concerned with the interactions between computers and human (natural) languages, in particular how to program computers to process and analyze large amounts of natural language data.
 
 - Classifying text
-- Chatbots
-- Word embeddings 
+- Chat bots
+- Word embedding 
 
 NLP definitions
 ========================================================
@@ -33,7 +34,7 @@ form.
 
 A document is the row of a matrix 
 
-A term is single token from the corpus
+A token is single term from the corpus
 
 NLP definitions
 ========================================================
@@ -64,40 +65,25 @@ An n-gram is a contiguous sequence of n items from a given sequence of text.
 Corpus in a matrix 
 ========================================================
 
-Let us say we have a simple corpus:
+A document is about cars:
 
 
-| index|text                      |
-|-----:|:-------------------------|
-|     1|MIF is cool cool          |
-|     2|opel ascona 2005m is cool |
-|     3|what did the girl want    |
+| index|text                    |  Y|
+|-----:|:-----------------------|--:|
+|     1|The new car             |  1|
+|     2|opel is good automobile |  1|
+|     3|the weather is dreadful |  0|
+|     4|murder and drugs        |  0|
 
 The document term matrix would then look like:
 
 
-| did| want| ascona| 2005m| the| what| MIF| opel| girl| is| cool|
-|---:|----:|------:|-----:|---:|----:|---:|----:|----:|--:|----:|
-|   0|    0|      0|     0|   0|    0|   1|    0|    0|  1|    2|
-|   0|    0|      1|     1|   0|    0|   0|    1|    0|  1|    1|
-|   1|    1|      0|     0|   1|    1|   0|    0|    1|  0|    0|
-
-DTM with 2 - grams
-========================================================
-
-
-| index|text                      |
-|-----:|:-------------------------|
-|     1|MIF is cool cool          |
-|     2|opel ascona 2005m is cool |
-|     3|what did the girl want    |
-
-
-| cool_cool| the_girl| ascona_2005m| girl_want| 2005m_is| did_the| MIF_is| opel_ascona| what_did| is_cool|
-|---------:|--------:|------------:|---------:|--------:|-------:|------:|-----------:|--------:|-------:|
-|         1|        0|            0|         0|        0|       0|      1|           0|        0|       1|
-|         0|        0|            1|         0|        1|       0|      0|           1|        0|       1|
-|         0|        1|            0|         1|        0|       1|      0|           0|        1|       0|
+| drugs| car| weather| murder| and| automobile| new| opel| dreadful| good| is| the|
+|-----:|---:|-------:|------:|---:|----------:|---:|----:|--------:|----:|--:|---:|
+|     0|   1|       0|      0|   0|          0|   1|    0|        0|    0|  0|   1|
+|     0|   0|       0|      0|   0|          1|   0|    1|        0|    1|  1|   0|
+|     0|   0|       1|      0|   0|          0|   0|    0|        1|    0|  1|   1|
+|     1|   0|       0|      1|   1|          0|   0|    0|        0|    0|  0|   0|
 
 Logistic regression in NLP context
 ========================================================
@@ -117,6 +103,25 @@ $$  \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0
 
 in respect to $\beta_{0}$ and $\beta$
 
+Result from the example
+========================================================
+
+
+|feature     | coefficient|
+|:-----------|-----------:|
+|car         |   0.4048455|
+|new         |   0.4048420|
+|opel        |   0.3504947|
+|good        |   0.3504942|
+|automobile  |   0.3504933|
+|(Intercept) |   0.0203799|
+|the         |  -0.0000001|
+|is          |  -0.0407604|
+|drugs       |  -0.3504939|
+|murder      |  -0.3504939|
+|and         |  -0.3504944|
+|dreadful    |  -0.4048414|
+|weather     |  -0.4048444|
 
 Lasso and Ridge logistic regression
 ========================================================
@@ -125,13 +130,9 @@ Ridge (more uniform distribution of coefficient values):
 
 $$ \dfrac{1}{N} \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0} + \beta^T x_{i}})) \right) - \alpha \sum_{j = 1}^{k} \beta_{j} ^ 2$$
 
-Lasso (reduces feature number): 
+Lasso (reduces number of features): 
 
 $$ \dfrac{1}{N} \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0} + \beta^T x_{i}})) \right) - \alpha \sum_{j = 1}^{k} |\beta_{j}| $$
-
-Elastic net (something in between): 
-
-$$ \dfrac{1}{N} \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0} + \beta^T x_{i}})) \right) - (\alpha \sum_{j = 1}^{k} |\beta_{j}| + (1 - \alpha) \sum_{j = 1}^{k} \beta_{j} ^ 2)$$
 
 Quora insincere question competition
 ========================================================
@@ -178,7 +179,15 @@ dim(dtm)
 ```
 
 ```
-[1] 161620  10957
+[1] 161620  10956
+```
+
+
+```r
+model <- glmnet(x = dtm, y = train$target,
+                  family = 'binomial',
+                  alpha = 0,
+                  lambda = 0.01)
 ```
 
 
@@ -189,7 +198,7 @@ dim(coef_table)
 ```
 
 ```
-[1] 10958     2
+[1] 10957     2
 ```
 
 Ridge regression results (sincere sentiment)
@@ -198,19 +207,16 @@ Ridge regression results (sincere sentiment)
 
 |features      | coefficient|
 |:-------------|-----------:|
-|nc            |   -3.043594|
-|loneliness    |   -3.069235|
-|habitat       |   -3.104099|
-|pains         |   -3.131535|
-|immortality   |   -3.202438|
-|aftermath     |   -3.203054|
-|responded     |   -3.241714|
-|ipcc          |   -3.491197|
-|leap          |   -3.658487|
-|trades        |   -3.759274|
-|curved        |   -3.951417|
-|independently |   -3.969513|
-|whey          |   -4.575782|
+|pains         |   -3.130936|
+|immortality   |   -3.201486|
+|aftermath     |   -3.205285|
+|responded     |   -3.238110|
+|ipcc          |   -3.495939|
+|leap          |   -3.655830|
+|trades        |   -3.758036|
+|curved        |   -3.949973|
+|independently |   -3.971127|
+|whey          |   -4.573653|
 
 Ridge regression results (insincere sentiment)
 ========================================================
@@ -218,22 +224,27 @@ Ridge regression results (insincere sentiment)
 
 |features    | coefficient|
 |:-----------|-----------:|
-|mindless    |    5.110071|
-|castration  |    4.871917|
-|alabamians  |    4.805299|
-|castrating  |    4.699088|
-|tennesseans |    4.629572|
-|brandeis    |    4.505227|
-|castrated   |    4.326945|
-|nigerians   |    4.290410|
-|satanism    |    4.246887|
-|isaiah      |    4.149295|
-|nerds       |    4.112068|
-|fanboys     |    4.100346|
-|castrate    |    4.071429|
+|mindless    |    5.106554|
+|castration  |    4.872542|
+|alabamians  |    4.802497|
+|castrating  |    4.697437|
+|tennesseans |    4.630287|
+|brandeis    |    4.511478|
+|castrated   |    4.327585|
+|nigerians   |    4.296180|
+|satanism    |    4.244813|
+|isaiah      |    4.151869|
 
 Lasso regression results
 ========================================================
+
+
+```r
+model <- glmnet(x = dtm, y = train$target,
+                  family = 'binomial',
+                  alpha = 1,
+                  lambda = 0.01)
+```
 
 
 
@@ -243,7 +254,7 @@ dim(coef_table)
 ```
 
 ```
-[1] 267   2
+[1] 266   2
 ```
 
 Lasso regression results (sincere sentiment)
@@ -252,19 +263,16 @@ Lasso regression results (sincere sentiment)
 
 |features    | coefficient|
 |:-----------|-----------:|
-|book        |  -0.1769008|
-|exam        |  -0.1862232|
-|career      |  -0.1872319|
-|tips        |  -0.1950791|
-|job         |  -0.2074193|
-|computer    |  -0.2272395|
-|app         |  -0.2315998|
-|online      |  -0.2644002|
-|company     |  -0.3070122|
-|study       |  -0.3219155|
-|difference  |  -0.3856541|
-|engineering |  -0.5246687|
-|(Intercept) |  -0.7998757|
+|tips        |  -0.1948865|
+|job         |  -0.2073240|
+|computer    |  -0.2271329|
+|app         |  -0.2314394|
+|online      |  -0.2642010|
+|company     |  -0.3068929|
+|study       |  -0.3218161|
+|difference  |  -0.3855465|
+|engineering |  -0.5245851|
+|(Intercept) |  -0.8000179|
 
 Lasso regression results (insincere sentiment)
 ========================================================
@@ -272,17 +280,14 @@ Lasso regression results (insincere sentiment)
 
 |features  | coefficient|
 |:---------|-----------:|
-|liberals  |    1.930906|
-|indians   |    1.856574|
-|trump     |    1.817980|
-|muslims   |    1.795541|
-|americans |    1.763194|
-|castrated |    1.608803|
-|democrats |    1.591508|
-|women     |    1.552220|
-|girls     |    1.520034|
-|jews      |    1.385587|
-|gay       |    1.359668|
-|atheists  |    1.343609|
-|castrate  |    1.324343|
+|liberals  |    1.931021|
+|indians   |    1.856379|
+|trump     |    1.818080|
+|muslims   |    1.795633|
+|americans |    1.763183|
+|castrated |    1.608947|
+|democrats |    1.591572|
+|women     |    1.552479|
+|girls     |    1.519971|
+|jews      |    1.385540|
 

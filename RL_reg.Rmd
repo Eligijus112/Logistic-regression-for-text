@@ -59,11 +59,11 @@ knitr::opts_chunk$set(comment = NA)
 \vspace{2\baselineskip}
 \begin{center}\textbf{Abstract}\end{center}
 
-The aim of this paper is to give a brief introduction to natural language procesing (NLP), apply Ridge, Lasso and elastic net binary logistic regression to an NLP related problem and to write a reproducible code.   
+The aim of this document is to give a brief introduction to natural language procesing (NLP), apply Ridge, Lasso and elastic net binary logistic regression to an NLP related problem and to write a reproducible code.   
 
 The calculations and visuals are made using the statistical software $\textbf{R}$. The main framework for text preprocesing is the $\textbf{text2vec}$ `r Cite(bib, 'text2vec')` package. 
 
-The coefficients of the logistic regression are calculates using the package $\textbf{glmnet}$ `r Cite(bib, 'glmnet')`.
+The logistic regression is implemented using the package $\textbf{glmnet}$ `r Cite(bib, 'glmnet')`.
 
 \vspace{\baselineskip}
 \noindent\textbf{Key words :}
@@ -88,18 +88,18 @@ One part of NLP tasks is to deal with binary responses based on text. A computer
 
 \newpage
 
-# NLP definitions and techniques
-
-## Introductory case
+## Introductory example
 
 Let us assume that our $\mathbb{Y}$ variable is binary. Each class of $\mathbb{Y}$ could indicate whether a string is 'positive' or 'negative' in a semantic sense, 'sincere' or 'not sincere' and so on. Each column in the $\mathbb{X}$ matrix are also binary. Each column represent a unique word and each row value represent whether a word was observed in a given string or not.
 
-For example, let us say we have a 'positive' review -'This was delicious'- and a 'negative' one -'The food was awful'. Then raw document will have two rows:
+For example, let us say we have a couple of strings regarding a car review and some regarding other news:
 
 ```{r, echo = FALSE, results = 'asis'}
-sentiment <- c(1, 0)
-review <- c('This was delicious', 'This was awfull')
-d <- data.table(sentiment, review)
+d <- data.table(text = c('the new car', 
+                  'opel is good automobile', 
+                  'the weather is dreadful', 
+                  'the stocks are rising'), 
+                is_car_review = c(1, 1, 0, 0))
 kable(d)
 ```
 
@@ -109,7 +109,7 @@ The matrix that is used for computations is often called the document term matri
 prep_fun = tolower
 tok_fun = word_tokenizer
 
-it_train = itoken(d$review, 
+it_train = itoken(d$text, 
              preprocessor = prep_fun, 
              tokenizer = tok_fun, 
              ids = 1:nrow(d), 
@@ -122,31 +122,20 @@ dtm = create_dtm(it_train, vectorizer) %>%
 kable(dtm)
 ```
 
-As we can see, the matrix indicates that the first review had words $\textit{delicious}$, $\textit{was}$ and $\textit{this}$ while the second review had the words $\textit{awfull}$, $\textit{was}$ and $\textit{this}$. 
+Intuitively, we would like the words 'car' and 'automobile' to indicate a review beeing from a car review and the words 'weather', 'stocks' and others to indicate a non car related review. 
 
-We can define a general linear model for this case:
-
-$$log \dfrac{P(Y = 1)}{P(Y = 0)} = \beta_{0} + \beta_{1} \mathbbm{1}_{delicious} + \beta_{2} \mathbbm{1}_{was} + \beta_{3} \mathbbm{1}_{this} + \beta_{4} \mathbbm{1}_{awfull}$$
-
-According to the data, the coefficient $\beta_{1}$ should be positive and $\beta_{4}$ should be negative implying positive and negative sentiments respectively. The words $\textit{was}$ and $\textit{this}$ do not help in distinguishing between the positive and the negative sentiments thus the coefficients near these features need to be 0 or very small. 
+Binary logistic regression is a method that can assign each feature (word in our case) a positive or a negative weight depending on the response variable (variable $\textbf{is car review}$ in our case).
 
 \newpage
 
-## Definitions and notations
-
-The whole text corpus (all the data) is denoted $\mathbb{D}$. Typically, the corpus is the vector containing the text data. In the introduction chapter, the text corpus would be ['This was delicious', 'This was awful']. 
-
-Each entry in the corpus is denoted as $d$. In our example case we have two documents: 'This was delicious' and 'This was awful'.
-
-Each term (token) in a given corpus is denoted as t. 
+# NLP definitions and techniques
 
 ## Document corpus
 
-A text corpus is a collection of texts of written (or spoken) language presented in electronic form.
+A text corpus is a collection of texts of written (or spoken) language presented in electronic form. It is ussually denoted as 
+$\mathbb{D}$. Typically, the corpus is the vector containing the text data. In the introduction chapter, the text corpus would be ['the new car', 'opel is good automobile',  'the weather is dreadful', 'the stocks are rising']. 
 
-A document or text corpus are large and structured set of texts. Usually in the case natural language processing (NLP for short) each row of the $\mathbb{X}$ is treated as a separate document (in the introduction chapter, the number of documents would be 2). Each document are made of several tokens. 
-
-The whole data set in text related tasks is usually defined as corpus and can be used instead of the terms 'whole data set' or 'all data'. 
+Each document are made of several tokens. 
 
 ## Tokenization 
 
@@ -157,6 +146,8 @@ In English, words are often separated from each other by blanks (white space), b
 Tokenization is a kind of pre-processing in a sense; an identification of basic units to be processed. It is conventional to concentrate on pure analysis or generation while taking basic units for granted. Yet without these basic units clearly segregated it is impossible to carry out any analysis or generation.
 
 For example, the string 'I'm a from the city of Vilnius' can be tokenized into several tokens: 'i', 'am', 'from', 'the', 'city', 'of', 'vilnius'. 
+
+Each term (token) in a given corpus is denoted as $t$. 
 
 ## N - grams
 
@@ -184,25 +175,43 @@ N - total number of documents in our corpus. The corpus in the introduction chap
 
 $|\{d \in D: t \in d  \}|$  number of documents where the term t appears. We add 1 because if no document has a certain term, then we would be dividing by zero. 
 
+\newpage
+
 ### Tf - idf calculation 
 
 The tf-idf transformation for each term is a product of term frequency and inverse document frequency. 
 
-$$tfidf(t, d, D) = tf(t, d) \centerdot idf(t, D)$$
+$$tfidf(t, d, D) = tf(t, d) \, idf(t, D)$$
 
-Recall our example case. Lets us calculate the tfidf statistic for the word 'awful'. 
+Recall our example case. Lets us calculate the tfidf statistic for the word 'car'. 
 
-$tf('awfull', d_{1}) = 0$
+Term frequency:
 
-$tf('awfull', d_{2}) = 1$
+$tf('car', d_{1}) = 1$
 
-$idf('awfull', D) = log(\frac{2}{2}) = 0$ 
+$tf('car', d_{2}) = 0$
 
-$tfidf('awfull', d_{1}, D) = 0$
+$tf('car', d_{3}) = 0$
 
-$tfidf('awfull', d_{2}, D) = 0$
+$tf('car', d_{4}) = 0$
 
-The transformation would yield that in both documents the term 'awful' is equal to 0, although this term is very important in distinguishing between the sentiments. This is because we only used a corpus with two documents. In practice, the td - idf transformation is used when a corpus has a lot of documents.
+Inverse document frequency:
+
+$idf('car', D) = log(\frac{4}{2}) = 0.69$ 
+
+Term frequency - inverse document frequency:
+
+$tfidf('car', d_{1}, D) = 0.69$
+
+$tfidf('car', d_{2}, D) = 0$
+
+$tfidf('car', d_{3}, D) = 0$
+
+$tfidf('car', d_{4}, D) = 0$
+
+The transformation would yield that in the first document the term 'car' is equal to 0.69 and 0 in others. After transforming our dtm using this transformation we would diminish the weights of words that appear in every document and enhance the weights of specific words that are only in few documents. 
+
+Additionally, we would not have to artificially drop words that are very common because the more times a term appears in documents, the less important it will be, because the dtm value for that feature will be close to 0.
 
 \newpage
 
@@ -231,9 +240,11 @@ $$\mathbb{Y} = \begin{bmatrix}
     1 & x_{n1} & x_{n2} & ... & x_{nk}
 \end{bmatrix}$$
 
-In practice, all $x_{ij}$ are either 0 or 1, indicating existence in certain row of the document term matrix, or the count of occurrence in row in the document term matrix. The number of columns in the $\mathbb{X}$ matrix is equal to the number of unique words in our document.
+In practice, all $x_{ij}$ are either 0 or 1, indicating that a feature appeared in a certain document of the corpus, or the count of occurrence in a given document. The number of columns in the $\mathbb{X}$ matrix is equal to the number of unique terms in our document.
 
-The general model is then:
+The terms could be unigrams, bigrams, stemmed words, whole sentences. It all depends on the problem and the insights of the researcher.
+
+The general model for the binary response variable is:
 
 $$ log \dfrac{P(Y = 1)}{P(Y = 0)} = \sum_{i = 0}^{k}\theta_{i} X_{i} \, (1)$$
 
@@ -256,11 +267,9 @@ $$ \pi_{i} := P(\mathbb{Y}_{i} = 1) = \dfrac{e^{\theta^{T} \mathbb{X}_{i}}}{1 + 
 
 $$ P(\mathbb{Y}_{i} = 0) = 1 - \pi_{i} $$
 
-In every binary case, the $\mathbb{Y}$ can be encoded as a vector consisting of 0 and 1. Thus, we want $\theta$ such that the product:
+In every binary case, the $\mathbb{Y}$ can be encoded as a vector consisting of 0 and 1. Thus, we want $\theta$ that maximizes the product:
 
 $$ l(\theta) = \prod_{i = 1}^{n} \pi_{i}^{y_{i}}(1 - \pi_{i})^{1 - y_{i}} \, (2)$$
-
-is the biggest . 
 
 Logarithm is a monotone function thus the maximum of $l(\theta)$ is the same as $log(l(\theta))$ `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp. 636 - 637")`. 
 
@@ -268,7 +277,7 @@ $$L(\theta) := log(l(\theta)) = \sum_{i=1}^{n}\left[y_{i} log(\pi_{i}) + (1 - y_
 
 $$L(\theta) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] \, (3)$$
 
-The $\widehat{\theta}$ that maximizes the (3) equation will give a weight to every unique word in our text. This, in practice, is usually not ideal, because even a small text document can have thousands of unique words. 
+The $\widehat{\theta}$ that maximizes the (3) equation will give a weight to every unique word in our text. This, in practice, may lead to some computational problems, because even a small text document can have thousands of unique words. 
 
 \newpage
 
@@ -311,7 +320,7 @@ This is the case in glmnet package. The general formula which yealds the $\wideh
 
 $$-\dfrac{1}{N}\sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] + \lambda \left( \alpha \sum_{j = 1}^{k} |\theta_{j}| + (1 - \alpha)\sum_{j = 1}^{k} \theta_{j}^{2}\right) $$
 
-If $\alpha$ = 0 then we have Ridge regression. If $\alpha$ = 1 then we have Lasso regression.
+If $\alpha$ = 0 then we have Ridge regression. If $\alpha$ = 1 then we have Lasso regression. $\lambda$ is a parameter that tell us how much weight should be put on the penalty of the parameters.
 
 \newpage
 
@@ -400,7 +409,7 @@ vocab = create_vocabulary(it_train,
                           stopwords = stopwords(source = 'smart'))
 ```
 
-We will prune the vocabulary to include only words that appear in more than 10 documents and do not appear more than in 50 percent of the documents.
+We will prune the vocabulary to include only words that appear in more than 10 documents and do not appear more than in 50 percent of the documents. Finally, we will transform our document term matrix using the tf idf transformation.
 
 ```{r}
 pruned_vocab = prune_vocabulary(vocab, doc_count_min = 10, 
@@ -417,7 +426,7 @@ dtm_train_tfidf = fit_transform(dtm_train, tfidf)
 
 ## Number of features
 
-We will create several models with different alpha values using the glmnet package `r Cite(bib, 'glm', .opts = list(cite.style = "numeric"))`. The first model will represent the Lasso logistic regression while the last one will represent the Ridge logistic regression.
+We will create several models with different alpha values using the glmnet package `r Cite(bib, 'glm', .opts = list(cite.style = "numeric"))`. The first model ($\alpha$ = 0) will represent the Ridge logistic regression while the last one ($\alpha$ = 1) will represent the Lasso logistic regression.
 
 ```{r}
 ## Defining the range of alpha
