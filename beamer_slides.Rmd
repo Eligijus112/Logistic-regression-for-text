@@ -1,0 +1,293 @@
+---
+title: "Ridge and Lasso binary logistic regression in NLP using R"
+author: "Eligijus Bujokas"
+date: "December 18, 2018"
+institute: "Vilnius University"
+fontsize: 10pt
+output:
+  beamer_presentation:
+    theme: "Singapore"
+header-includes:
+- \usepackage[L7x]{fontenc}
+- \usepackage{bbm}
+- \bibliographystyle{plainnat}
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(xtable)
+library(knitr)
+library(text2vec)
+library(magrittr)
+library(dplyr)
+library(tm)
+library(stopwords)
+library(stringr)
+library(glmnet)
+```
+
+## Content
+
+- What is natural language processing
+- NLP definitions
+- Logistic regression in NLP tasks
+- Quora example
+
+## Natural language processing
+
+Natural language processing (NLP) is a sub field of computer science concerned with the interactions between computers and human (natural) languages, in particular how to program computers to process and analyze large amounts of natural language data.
+
+- Classifying text
+- Chat bots
+- Word embedding 
+
+## NLP definitions
+
+Corpus
+
+A text corpus is a collection of texts of written (or spoken) language presented in electronic
+form.
+
+A document is the row of a matrix 
+
+A token is single term from the corpus
+
+## NLP definitions
+
+Tokens
+
+Eligijus is presenting now. 
+
+[Eligijus], [is], [presenting], [now]
+
+[Eligijus is], [presenting now]
+
+## NLP definitions
+
+N - grams
+
+An n-gram is a contiguous sequence of n items from a given sequence of text. 
+
+2 - gram (bigram):
+
+[Eligijus is], [is presenting], [presenting now]
+
+3 - gram: 
+
+[Eligijus is presenting], [is presenting now]
+
+## Corpus in a matrix 
+
+A document is about cars:
+
+```{r, echo = FALSE, results = 'asis'}
+d <- data.table(index = 1:4, 
+                text = c('The new car', 
+                  'fantastic car', 
+                  'the weather is dreadful', 
+                  'the weather is great'), 
+                Y = c(1, 1, 0, 0))
+kable(d)
+```
+
+The document term matrix would then look like:
+
+```{r, echo = FALSE, results = 'asis'}
+it_train <- itoken(d$text, 
+             ids = d$index, 
+             preprocessor = tolower,
+             progressbar = FALSE)
+vocab <- create_vocabulary(it_train)
+vectorizer <- vocab_vectorizer(vocab)
+dtm <- create_dtm(it_train, vectorizer)
+features <- colnames(dtm)
+dtm <- as.matrix(dtm) %>% data.table()
+names(dtm) <- features
+tab <- xtable(dtm, digits = 0)
+print(tab, include.rownames=FALSE, comment=FALSE)
+```
+
+## Logistic regression in NLP context
+
+Let us say we have n documents and k unique tokens. Each document is assigned a 
+binary label - {0, 1}. 
+
+Then the general model is: 
+
+$$ log \dfrac{P(Y = 1)}{P(Y = 0)} = \sum_{i = 0}^{k}\beta_{i} X_{i} \, (1)$$
+
+We start indexing from zero because of the intercept. 
+
+We get the coefficients $\widehat{\beta}$ by maximizing: 
+
+$$  \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0} + \beta^T x_{i}})) \right)  $$
+
+in respect to $\beta_{0}$ and $\beta$
+
+## Result from the example
+
+```{r, include = FALSE}
+it_train <- itoken(d$text, 
+             ids = d$index, 
+             preprocessor = tolower,
+             progressbar = FALSE)
+vocab <- create_vocabulary(it_train)
+vectorizer <- vocab_vectorizer(vocab)
+dtm <- create_dtm(it_train, vectorizer)
+
+model_simple <- glmnet(x = dtm, y = as.factor(d$Y), 
+                       family = 'binomial', alpha = 0, 
+                       lambda = 1)
+```
+
+```{r, echo = FALSE}
+coef_table <- coef(model_simple) 
+data.table(feature = rownames(coef_table), 
+           coefficient = coef_table[, 1]) %>% 
+  .[order(-coefficient)] %>% 
+  kable()
+```
+
+## Lasso and Ridge logistic regression
+
+Ridge (more uniform distribution of coefficient values): 
+
+$$ \dfrac{1}{N} \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0} + \beta^T x_{i}})) \right) - \alpha \sum_{j = 1}^{k} \beta_{j} ^ 2$$
+
+Lasso (reduces number of features): 
+
+$$ \dfrac{1}{N} \sum_{i = 1}^{n}\left(y_{i}(\beta_{0} + \beta^T x_{i}) - log(1 + e^{\beta_{0} + \beta^T x_{i}})) \right) - \alpha \sum_{j = 1}^{k} |\beta_{j}| $$
+
+## Quora insincere question competition
+
+Competition: 
+
+https://www.kaggle.com/c/quora-insincere-questions-classification 
+
+Data: 
+
+https://www.kaggle.com/c/quora-insincere-questions-classification/data
+
+Y = 1 if the question is not sincere
+
+Y = 0 if the question is sincere
+
+## Example
+
+Sincere questions:
+
+```{r, echo = FALSE, results = 'asis'}
+D <- fread('data/quora.csv', showProgress = FALSE) %>% 
+  select(question_text, target)
+head(D[target == 0]$question_text, 4) 
+```
+
+Insincere questions:
+
+```{r, echo = FALSE, results = 'asis'}
+head(D[target == 1]$question_text, 4) 
+```
+
+```{r, echo = FALSE}
+set.seed(1)
+no_negative <- D[target == 1] %>% 
+  nrow()
+train <- D[,.SD[sample(1:.N, no_negative, replace = FALSE)] , by = .(target)]
+train <- train[, index := 1:.N]
+
+prep_fun = function(x){
+  x <- tolower(x)
+  x <- str_replace_all(x, '[[:punct:]]', ' ')
+  x <- str_replace_all(x, '[[:digit:]]', ' ')
+  return(x)
+}
+
+it_train = itoken(train$question_text, 
+             preprocessor = prep_fun, 
+             tokenizer = word_tokenizer, 
+             ids = train$index, 
+             progressbar = FALSE)
+vocab = create_vocabulary(it_train, 
+                          stopwords = stopwords(source = 'smart'))
+pruned_vocab = prune_vocabulary(vocab, doc_count_min = 10, 
+                                 doc_proportion_max = 0.5)
+vectorizer = vocab_vectorizer(pruned_vocab)
+
+dtm  = create_dtm(it_train, vectorizer)
+```
+
+## Ridge regression results
+
+```{r}
+dim(dtm)
+```
+
+```{r}
+model <- glmnet(x = dtm, y = train$target,
+                  family = 'binomial',
+                  alpha = 0,
+                  lambda = 0.01)
+
+```
+
+```{r, echo = FALSE}
+coef_table <- coef(model)
+coef_table <- data.table(features = rownames(coef_table), 
+                         coefficient = coef_table[, 1]) %>% 
+  .[coefficient != 0] %>% 
+  .[order(-coefficient)]
+```
+
+```{r}
+dim(coef_table)
+```
+
+## Ridge regression results (sincere sentiment)
+
+```{r, echo = FALSE, results = 'asis'}
+tail(coef_table, 10) %>% 
+  kable() 
+```
+
+## Ridge regression results (insincere sentiment)
+
+```{r, echo = FALSE, results = 'asis'}
+head(coef_table, 10) %>% 
+  kable() 
+```
+
+## Lasso regression results
+
+```{r}
+model <- glmnet(x = dtm, y = train$target,
+                  family = 'binomial',
+                  alpha = 1,
+                  lambda = 0.01)
+
+```
+
+```{r, echo = FALSE}
+coef_table <- coef(model)
+coef_table <- data.table(features = rownames(coef_table), 
+                         coefficient = coef_table[, 1]) %>% 
+  .[coefficient != 0] %>% 
+  .[order(-coefficient)]
+```
+
+```{r}
+dim(coef_table)
+```
+
+## Lasso regression results (sincere sentiment)
+
+```{r, echo = FALSE, results = 'asis'}
+tail(coef_table, 10) %>% 
+  kable() 
+```
+
+## Lasso regression results (insincere sentiment)
+
+```{r, echo = FALSE, results = 'asis'}
+head(coef_table, 10) %>% 
+  kable() 
+```

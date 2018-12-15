@@ -5,8 +5,6 @@ date: 2018.12.18
 autosize: true
 Vilnius University
 
-
-
 Content
 ========================================================
 
@@ -290,4 +288,3 @@ Lasso regression results (insincere sentiment)
 |women     |    1.552479|
 |girls     |    1.519971|
 |jews      |    1.385540|
-
