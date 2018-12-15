@@ -1,5 +1,6 @@
 data/
 *.csv
 *.tex
+*.html
 .Rhistory
-.RL_reg_files/
+RL_reg_files/

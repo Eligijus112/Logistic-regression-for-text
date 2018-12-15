@@ -41,7 +41,7 @@ knitr::opts_chunk$set(comment = NA)
 \centerline{\bf \Large \textbf{Article}}
 \vskip 50pt
 \begin{center}
-{\bf \LARGE Ridge and Lasso logistic regression in natural language procesing}
+{\bf \LARGE Ridge and Lasso logistic regression in natural language processing}
 
 \vspace{4mm}
 
@@ -53,15 +53,14 @@ knitr::opts_chunk$set(comment = NA)
 
 \newpage
 
-
 \begin{center}{\large\textbf{Logistic Ridge and Lasso regression in NLP}}\end{center}
 
 \vspace{2\baselineskip}
 \begin{center}\textbf{Abstract}\end{center}
 
-The aim of this document is to give a brief introduction to natural language procesing (NLP), apply Ridge, Lasso and elastic net binary logistic regression to an NLP related problem and to write a reproducible code.   
+The aim of this document is to give a brief introduction to natural language processing (NLP), apply Ridge, Lasso and elastic net binary logistic regression to an NLP related problem and to write a reproducible code.   
 
-The calculations and visuals are made using the statistical software $\textbf{R}$. The main framework for text preprocesing is the $\textbf{text2vec}$ `r Cite(bib, 'text2vec')` package. 
+The calculations and visuals are made using the statistical software $\textbf{R}$. The main framework for text preprocessing is the $\textbf{text2vec}$ `r Cite(bib, 'text2vec')` package. 
 
 The logistic regression is implemented using the package $\textbf{glmnet}$ `r Cite(bib, 'glmnet')`.
 
@@ -71,7 +70,6 @@ Logistic regression, Ridge, Lasso, Elastic Net, NLP, machine learning, tfidf
 
 \vspace{\baselineskip}
 
-
 \newpage
 
 \tableofcontents
@@ -80,11 +78,11 @@ Logistic regression, Ridge, Lasso, Elastic Net, NLP, machine learning, tfidf
 
 # Introduction
 
-There are many classification tasks that revolve around classifying textual data. There are algorithms that based on a user inputed string can talk with a person, after reading lyrics of a song it can label the genre of the song and so on. The field of computer science that deals with text which comes from users (humans) is called natural language processing. 
+There are many classification tasks that revolve around classifying textual data. There are algorithms that based on a user written string can talk with a person, after reading lyrics of a song it can label the genre of the song and so on. The field of computer science that deals with text which comes from users (humans) is called natural language processing. 
 
-Natural language processing (NLP) is a subfield of computer science concerned with the interactions between computers and human (natural) languages, in particular how to program computers to process and analyze large amounts of natural language data.
+Natural language processing (NLP) is a sub field of computer science concerned with the interactions between computers and human (natural) languages, in particular how to program computers to process and analyze large amounts of natural language data.
 
-One part of NLP tasks is to deal with binary responses based on text. A computer must determine whether an inputed text has a positive or negative sentiment, whether this is hate speech or not and so on. It is very time consuming (and almost impossible) for humans to cover the vast amount of textual data and give it a label thus computer scientists implemented binary logistic regression in various NLP frameworks to deal with the labeling problem. Instead of goind through millions of documents, a group of people need to label only a couple of thousand of documents and have the computer (machine) fit the binary logistic model (learn) and fit the model to other texts.
+One part of NLP tasks is to deal with binary responses based on text. A computer must determine whether a written text has a positive or negative sentiment, whether this is hate speech or not and so on. It is very time consuming (and almost impossible) for humans to cover the vast amount of textual data and give it a label thus computer scientists implemented binary logistic regression in various NLP frameworks to deal with the labeling problem. Instead of going through millions of documents, a group of people need to label only a couple of thousand of documents and have the computer (machine) fit the binary logistic model (learn) and fit the model to other texts.
 
 \newpage
 
@@ -122,7 +120,7 @@ dtm = create_dtm(it_train, vectorizer) %>%
 kable(dtm)
 ```
 
-Intuitively, we would like the words 'car' and 'automobile' to indicate a review beeing from a car review and the words 'weather', 'stocks' and others to indicate a non car related review. 
+Intuitively, we would like the words 'car' and 'automobile' to indicate a review being from a car review and the words 'weather', 'stocks' and others to indicate a non car related review. 
 
 Binary logistic regression is a method that can assign each feature (word in our case) a positive or a negative weight depending on the response variable (variable $\textbf{is car review}$ in our case).
 
@@ -132,14 +130,14 @@ Binary logistic regression is a method that can assign each feature (word in our
 
 ## Document corpus
 
-A text corpus is a collection of texts of written (or spoken) language presented in electronic form. It is ussually denoted as 
+A text corpus is a collection of texts of written (or spoken) language presented in electronic form. It is usually denoted as 
 $\mathbb{D}$. Typically, the corpus is the vector containing the text data. In the introduction chapter, the text corpus would be ['the new car', 'opel is good automobile',  'the weather is dreadful', 'the stocks are rising']. 
 
 Each document are made of several tokens. 
 
 ## Tokenization 
 
-Electronic text is a linear sequence of symbols (characters or words or phrases). Naturally, before any real text processing is to be done, text needs to be segmented into linguistic units such as words, punctuation, numbers, alpha-numeric, etc. This process is called tokenization `r Cite(bib, 'token', .opts = list(cite.style = "numeric"))`.
+Electronic text is a linear sequence of symbols (characters or words or phrases). Naturally, before any real text processing is to be done, text needs to be segmented into linguistic units such as words, punctuation, numbers, alpha-numeric, etc. This process is called tokenization `r Cite(bib, 'token')`.
 
 In English, words are often separated from each other by blanks (white space), but not all white space is equal. Both 'Los Angeles' and 'rock 'n' roll' are individual thoughts despite the fact that they contain multiple words and spaces. We may also need to separate single words like 'I'm' into separate words 'I' and 'am'.
 
@@ -151,7 +149,7 @@ Each term (token) in a given corpus is denoted as $t$.
 
 ## N - grams
 
-An n-gram is a contiguous sequence of n items from a given sequence of text `r Cite(bib, 'nlp_bible', .opts = list(cite.style = "numeric"), after=" , pp. 37")`. Given a sentence, we can construct a list of n-grams from the sentence by finding pairs of words that occur next to each other. For example, given the sentence 'my name is Eligijus' you can construct bigrams (n-grams of length 2) by finding consecutive pairs of words: 'my name', 'name is' and 'is Eligijus'. Each of these bigrams would be considered a token and would be considered as a separate feature in the $\mathbb{X}$ matrix.
+An n-gram is a contiguous sequence of n items from a given sequence of text `r Cite(bib, 'nlp_bible', after=" , pp. 37")`. Given a sentence, we can construct a list of n-grams from the sentence by finding pairs of words that occur next to each other. For example, given the sentence 'my name is Eligijus' you can construct bigrams (n-grams of length 2) by finding consecutive pairs of words: 'my name', 'name is' and 'is Eligijus'. Each of these bigrams would be considered a token and would be considered as a separate feature in the $\mathbb{X}$ matrix.
 
 ## Tf-idf tranformation
 
@@ -159,7 +157,7 @@ Tf-idf, short for term frequency-inverse document frequency, is a numerical stat
 
 ### Term frequency
 
-$tf(\centerdot)$ is a function of two arguments - the term t and document d. If we denote the term frequency in a document as $f_{t, d}$ then 
+$tf()$ is a function of two arguments - the term t and document d. If we denote the term frequency in a document as $f_{t, d}$ then 
 
 $$ tf(t, d) = f_{t, d} $$
 
@@ -167,7 +165,7 @@ In simpler terms, the function tf() takes every unique token in our corpus and c
 
 ### Inverse document frequency
 
-The inverse document frequency ($idf(\centerdot)$) is a measure of how much information the word provides, in other words, if it is common or rare across all documents.
+The inverse document frequency ($idf()$) is a measure of how much information the word provides, in other words, if it is common or rare across all documents.
 
 $$ idf(t, D) = log\left(\dfrac{N}{1 + |\{d \in D: t \in d  \}|} \right)$$  
 
@@ -261,7 +259,7 @@ $$\theta := \begin{bmatrix}
     \theta_{k}
 \end{bmatrix}$$
 
-From (1), the probability of 'success' for each observation i can be rewritten as `r Cite(bib, 'ML', .opts = list(cite.style = "numeric"), after=" , pp. 3-5")`:
+From (1), the probability of 'success' for each observation i can be rewritten as `r Cite(bib, 'ML', after=" , pp. 3-5")`:
 
 $$ \pi_{i} := P(\mathbb{Y}_{i} = 1) = \dfrac{e^{\theta^{T} \mathbb{X}_{i}}}{1 + e^{\theta^{T} \mathbb{X}_{i}}} = \dfrac{1}{1 + e^{-\theta^{T} \mathbb{X}_{i}}} $$
 
@@ -271,7 +269,7 @@ In every binary case, the $\mathbb{Y}$ can be encoded as a vector consisting of 
 
 $$ l(\theta) = \prod_{i = 1}^{n} \pi_{i}^{y_{i}}(1 - \pi_{i})^{1 - y_{i}} \, (2)$$
 
-Logarithm is a monotone function thus the maximum of $l(\theta)$ is the same as $log(l(\theta))$ `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp. 636 - 637")`. 
+Logarithm is a monotone function thus the maximum of $l(\theta)$ is the same as $log(l(\theta))$ `r Cite(bib, 'ridge_lasso', after=" , pp. 636 - 637")`. 
 
 $$L(\theta) := log(l(\theta)) = \sum_{i=1}^{n}\left[y_{i} log(\pi_{i}) + (1 - y_{i})log(1 - \pi_{i})\right] = \sum_{i=1}^{n}\left[y_{i}log(\dfrac{\pi_{i}}{1 -\pi_{i}}) + log(1 - \pi_{i})\right] $$
 
@@ -287,7 +285,7 @@ Ridge logistic regression introduces an additional term to the (3) equation - th
 
 $$ L^{R}(\theta, \alpha) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \alpha \sum_{j = 1}^{k} \theta_{j}^{2} $$
 
-Often in practice, the $\alpha$ parameter is fixed to a certain value. As the parameter $\alpha$ increases, the ridge coefficient estimates will tend to approach zero. However, the penalty introduced in the log-likelihood function will shrink all of the coefficients towards zero, but it will not set any of them exactly to zero. Hence, ridge regression has the disadvantage over model selection, of including all the predictors in the final model. 
+Often in practice, the $\alpha$ parameter is fixed to a certain value. As the parameter $\alpha$ increases, the ridge coefficient estimates will tend to approach zero. However, the penalty introduced in the log-likelihood function will shrink all of the coefficients towards zero, but it will not set any of them exactly to zero `r Cite(bib, 'ridge', after=" , pp.8")`. Hence, ridge regression has the disadvantage over model selection, of including all the predictors in the final model. 
 
 On the other hand, Ridge regression estimates gives us more uniformally distributed weights to all words. Depending on the problem, one may view this as an advantage. 
 
@@ -297,7 +295,7 @@ Lasso logistic regression is very similar to that of Ridge, but the penalty term
 
 $$ L^{L}(\theta, \alpha) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + log(1 + e^{\theta^{T}\mathbb{X}_{i}})\right] - \alpha \sum_{j = 1}^{k} |\theta_{j}| $$
 
-The L1 penalty used in the lasso is used for both variable selection and shrinkage, since it has the effect, when the $\alpha$ is sufficiently large, of forcing some of the coefficient estimates to be exactly equal to zero `r Cite(bib, 'ridge_lasso', .opts = list(cite.style = "numeric"), after=" , pp.637")`.
+The L1 penalty used in the lasso is used for both variable selection and shrinkage, since it has the effect, when the $\alpha$ is sufficiently large, of forcing some of the coefficient estimates to be exactly equal to zero `r Cite(bib, 'ridge_lasso', after=" , pp.637")`.
 In Lasso regression, the final model may involve only a subset of the predictors, which in turn improves model interpretability. 
 
 Depending on the research subject and the problem, having less predictors is beneficial. 
@@ -311,7 +309,7 @@ $$ L^{EN}(\theta, \alpha) = \sum_{i}^{n}\left[y_{i}\theta^{T}\mathbb{X}_{i} + lo
 $\alpha \in (0, 1)$.  
 
 This approach is particularly useful when the number of predictors is much larger than the number of
-observations `r Cite(bib, 'EN', .opts = list(cite.style = "numeric"))`. 
+observations `r Cite(bib, 'EN')`. 
 
 ## Formula in glmnet
 
@@ -326,7 +324,7 @@ If $\alpha$ = 0 then we have Ridge regression. If $\alpha$ = 1 then we have Lass
 
 # Quora sincere question  example
 
-We will use the various types of logistic regression and text preprocesing techniques to a data set from the website Quora. On that website users can ask any question and other users can answer those question for recognition or special points. While most of the questions are sincere, some of the questions are dubious and it is not easy to keep track of all the questions for a human. Thus, machine learning algorithms can be used to determine whether an inputed question is genuine or not. 
+We will use the various types of logistic regression and text preprocessing techniques to a data set from the website Quora. On that website users can ask any question and other users can answer those question for recognition or special points. While most of the questions are sincere, some of the questions are dubious and it is not easy to keep track of all the questions for a human. Thus, machine learning algorithms can be used to determine whether a written question is genuine or not. 
 
 ## Explanatory data analysis
 
@@ -388,7 +386,7 @@ train <- D[setdiff(1:nrow(D), test_index)]
 
 ## Text preprocesing 
 
-We will drop the punctuations, make everything lowercase and remove the stop words (this, the, a, etc).
+We will drop the punctuation, make everything lowercase and remove the stop words (this, the, a, etc).
 
 ```{r}
 train <- train[, index := 1:.N]
@@ -426,7 +424,7 @@ dtm_train_tfidf = fit_transform(dtm_train, tfidf)
 
 ## Number of features
 
-We will create several models with different alpha values using the glmnet package `r Cite(bib, 'glm', .opts = list(cite.style = "numeric"))`. The first model ($\alpha$ = 0) will represent the Ridge logistic regression while the last one ($\alpha$ = 1) will represent the Lasso logistic regression.
+We will create several models with different alpha values using the glmnet package `r Cite(bib, 'glm')`. The first model ($\alpha$ = 0) will represent the Ridge logistic regression while the last one ($\alpha$ = 1) will represent the Lasso logistic regression.
 
 ```{r}
 ## Defining the range of alpha
